@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - NoticeHub</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div>
+        <h2>Dashboard</h2>
+        <div class="badge" id="who"></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="secondary" id="btnProfile" style="width:auto">Profile</button>
+        <button class="secondary" id="btnHome" style="width:auto">Notices</button>
+        <button class="danger" id="btnLogout" style="width:auto">Logout</button>
+      </div>
+    </div>
+
+    <!-- Notices Section -->
+    <div id="sectionNotices" class="row">
+      <!-- Teacher panel -->
+      <div class="col" id="teacherPanel" style="display:none;">
+        <div class="card">
+          <h3>Teacher Control panel</h3>
+          <p>Add notice (default Unpublished)</p>
+
+          <form id="noticeForm">
+            <label>Title</label>
+            <input id="nTitle" required placeholder="Exam schedule..."/>
+
+            <div style="height:10px"></div>
+
+            <label>Body</label>
+            <textarea id="nBody" required placeholder="Write notice details..."></textarea>
+
+            <div style="height:14px"></div>
+
+            <button type="submit">Add Notice</button>
+            <div class="toast" id="tNotice">Publish after adding.</div>
+          </form>
+
+          <div class="hr"></div>
+
+          <h3>Student & Teacher List</h3>
+          <div style="overflow:auto">
+            <table class="table" id="usersTable"></table>
+          </div>
+          <div class="toast" id="tUsers"> American International University - Bangladesh (AIUB) </div>
+        </div>
+      </div>
+
+      <!-- Student panel -->
+      <div class="col" id="studentPanel" style="display:none;">
+        <div class="card">
+          <h3>Student Tools</h3>
+          <p>Search and favorite published notices</p>
+
+          <label>Search by title</label>
+          <input id="search" placeholder="type to search..."/>
+          <div class="toast" id="tSearch">Favorites are saved per student.</div>
+        </div>
+      </div>
+
+      <!-- Notice list -->
+      <div class="col">
+        <div class="card">
+          <div class="meta">
+            <h3>Notices</h3>
+            <span class="badge" id="noticeCount"></span>
+          </div>
+          <div class="hr"></div>
+          <div class="grid-notices" id="noticeList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div id="sectionProfile" style="display:none;">
+      <div class="row">
+        <div class="col">
+          <div class="card">
+            <h3>My Profile</h3>
+            <form id="profileForm">
+              <label>Name</label>
+              <input id="pName" required />
+
+              <div style="height:10px"></div>
+
+              <label>Email</label>
+              <input id="pEmail" type="email" required />
+
+              <div style="height:14px"></div>
+
+              <button type="submit">Update Profile</button>
+              <div class="toast" id="tProfile">Update your Information.</div>
+            </form>
+
+            <div class="hr"></div>
+
+            <h3>Change Password</h3>
+            <form id="passForm">
+              <label>Old password</label>
+              <input id="oldPass" type="password" required />
+
+              <div style="height:10px"></div>
+
+              <label>New password</label>
+              <input id="newPass" type="password" minlength="6" required />
+
+              <div style="height:14px"></div>
+
+              <button class="secondary" type="submit">Change Password</button>
+              <div class="toast" id="tPass">AIUB</div>
+            </form>
+
+            <div class="hr"></div>
+
+            <button class="danger" id="btnDeleteMe">Delete My Account</button>
+            <div class="toast" id="tDelete">This will log you out from the dashboard .</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    seedIfEmpty();
+    const user = requireAuth();
+
+    // UI refs
+    const who = document.getElementById("who");
+    const teacherPanel = document.getElementById("teacherPanel");
+    const studentPanel = document.getElementById("studentPanel");
+    const noticeList = document.getElementById("noticeList");
+    const noticeCount = document.getElementById("noticeCount");
+    const search = document.getElementById("search");
+
+    const sectionNotices = document.getElementById("sectionNotices");
+    const sectionProfile = document.getElementById("sectionProfile");
+
+    who.textContent = `${user.name} • ${user.role.toUpperCase()}`;
+
+    // show role panel
+    if(user.role === "teacher") teacherPanel.style.display = "block";
+    if(user.role === "student") studentPanel.style.display = "block";
+
+    // nav buttons
+    document.getElementById("btnLogout").onclick = logout;
+    document.getElementById("btnProfile").onclick = ()=> {
+      sectionNotices.style.display = "none";
+      sectionProfile.style.display = "block";
+      fillProfile();
+    };
+    document.getElementById("btnHome").onclick = ()=> {
+      sectionProfile.style.display = "none";
+      sectionNotices.style.display = "flex";
+      renderNotices();
+      if(user.role === "teacher") renderUsers();
+    };
+
+    // Teacher: add notice
+    const noticeForm = document.getElementById("noticeForm");
+    if (noticeForm) {
+      noticeForm.addEventListener("submit", (e)=>{
+        e.preventDefault();
+        const title = document.getElementById("nTitle").value;
+        const body = document.getElementById("nBody").value;
+        const res = addNotice({title, body});
+        setToast("tNotice", res.msg, res.ok ? "ok" : "bad");
+        if(res.ok){
+          noticeForm.reset();
+          renderNotices();
+        }
+      });
+    }
+
+    // Student: search
+    if (search) {
+      search.addEventListener("input", ()=> renderNotices());
+    }
+
+    // Profile
+    function fillProfile(){
+      const u = getCurrentUser();
+      document.getElementById("pName").value = u.name;
+      document.getElementById("pEmail").value = u.email;
+    }
+
+    document.getElementById("profileForm").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const name = document.getElementById("pName").value.trim();
+      const email = document.getElementById("pEmail").value.trim();
+      const res = updateProfile({name, email});
+      setToast("tProfile", res.msg, res.ok ? "ok" : "bad");
+      if(res.ok){
+        const u = getCurrentUser();
+        who.textContent = `${u.name} • ${u.role.toUpperCase()}`;
+      }
+    });
+
+    document.getElementById("passForm").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const oldPass = document.getElementById("oldPass").value;
+      const newPass = document.getElementById("newPass").value;
+      const res = changePassword({oldPass, newPass});
+      setToast("tPass", res.msg, res.ok ? "ok" : "bad");
+      if(res.ok) e.target.reset();
+    });
+
+    document.getElementById("btnDeleteMe").addEventListener("click", ()=>{
+      const ok = confirm("Delete your account permanently");
+      if(!ok) return;
+      const res = deleteMyAccount();
+      setToast("tDelete", res.msg, res.ok ? "ok" : "bad");
+      if(res.ok) setTimeout(()=> location.href="login.html", 700);
+    });
+
+    // Render users (teacher)
+    function renderUsers(){
+      const table = document.getElementById("usersTable");
+      const users = getUsers();
+      let html = `
+        <tr>
+          <th>Name</th><th>Email</th><th>Role</th><th>Action</th>
+        </tr>
+      `;
+      users.forEach(u=>{
+        html += `
+          <tr>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>${u.role}</td>
+            <td>
+              <button class="danger" onclick="onDeleteUser('${u.id}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+      table.innerHTML = html;
+    }
+
+    window.onDeleteUser = function(userId){
+      const ok = confirm("Delete this user?");
+      if(!ok) return;
+      const res = deleteUserByTeacher(userId);
+      setToast("tUsers", res.msg, res.ok ? "ok" : "bad");
+      if(res.ok) renderUsers();
+    }
+
+    // Render notices
+    function renderNotices(){
+      const notices = load(LS_KEYS.NOTICES, []);
+      const favIds = user.role === "student" ? getFavoritesForUser(user.id) : [];
+
+      // teacher sees all, student sees only published
+      let visible = user.role === "teacher" ? notices : notices.filter(n => n.published);
+
+      // search (student only)
+      const q = (search ? search.value.trim().toLowerCase() : "");
+      if (user.role === "student" && q) {
+        visible = visible.filter(n => n.title.toLowerCase().includes(q));
+      }
+
+      noticeCount.textContent = `${visible.length} shown`;
+
+      noticeList.innerHTML = visible.map(n=>{
+        const statusTag = n.published
+          ? `<span class="tag pub">Published</span>`
+          : `<span class="tag unpub">Unpublished</span>`;
+
+        const isFav = favIds.includes(n.id);
+
+        const teacherActions = user.role === "teacher" ? `
+          <div class="actions">
+            <button class="secondary" onclick="onTogglePub('${n.id}')">${n.published ? "Unpublish" : "Publish"}</button>
+            <button class="danger" onclick="onDeleteNotice('${n.id}')">Delete</button>
+          </div>
+        ` : "";
+
+        const studentActions = user.role === "student" ? `
+          <div class="actions">
+            <button class="secondary" onclick="onToggleFav('${n.id}')">
+              ${isFav ? "★ Favorited" : "☆ Add Favorite"}
+            </button>
+          </div>
+        ` : "";
+
+        return `
+          <div class="notice">
+            <div class="meta">
+              <strong>${escapeHtml(n.title)}</strong>
+              ${statusTag}
+            </div>
+            <p>${escapeHtml(n.body)}</p>
+            <div class="meta">
+              <span class="tag">By: ${escapeHtml(n.authorName || "Teacher")}</span>
+              <span class="tag">${fmtDate(n.createdAt)}</span>
+            </div>
+            ${teacherActions}
+            ${studentActions}
+          </div>
+        `;
+      }).join("") || `<p>No notices found.</p>`;
+    }
+
+    window.onTogglePub = function(id){
+      const res = togglePublish(id);
+      setToast("tNotice", res.msg, res.ok ? "ok" : "bad");
+      renderNotices();
+    }
+
+    window.onDeleteNotice = function(id){
+      const ok = confirm("Delete this notice?");
+      if(!ok) return;
+      const res = deleteNotice(id);
+      setToast("tNotice", res.msg, res.ok ? "ok" : "bad");
+      renderNotices();
+    }
+
+    window.onToggleFav = function(id){
+      const next = toggleFavorite(user.id, id);
+      setToast("tSearch", "Favorites updated. Total: " + next.length, "ok");
+      renderNotices();
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // initial render
+    renderNotices();
+    if(user.role === "teacher") renderUsers();
+  </script>
+</body>
+</html>

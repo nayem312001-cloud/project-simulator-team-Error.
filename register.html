@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register - NoticeHub</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <h2>NoticeHub</h2>
+      <span class="badge">AIUB Teacher & Student Registration</span>
+    </div>
+
+    <div class="card" style="max-width:520px;margin:0 auto;">
+      <h2>Create account</h2>
+      <p>Register as Teacher or Student</p>
+
+      <form id="regForm">
+        <label>Full Name</label>
+        <input id="name" required placeholder="Your name"/>
+
+        <div style="height:10px"></div>
+
+        <label>Email</label>
+        <input id="email" type="email" required placeholder="email"/>
+
+        <div style="height:10px"></div>
+
+        <label>Password</label>
+        <input id="password" type="password" required placeholder="min 6 characters" minlength="6"/>
+
+        <div style="height:10px"></div>
+
+        <label>Role</label>
+        <select id="role" required>
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+        </select>
+
+        <div style="height:14px"></div>
+
+        <button type="submit">Register</button>
+        <div class="toast" id="toast">After Registration go to the Login page</div>
+
+        <div class="hr"></div>
+        <small>Already have an account? <a href="login.html">Login</a></small>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    seedIfEmpty();
+
+    document.getElementById("regForm").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const role = document.getElementById("role").value;
+
+      const res = registerUser({name, email, password, role});
+      setToast("toast", res.msg, res.ok ? "ok" : "bad");
+      if(res.ok){
+        setTimeout(()=> location.href="login.html", 700);
+      }
+    });
+  </script>
+</body>
+</html>

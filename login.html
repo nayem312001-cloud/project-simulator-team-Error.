@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - NoticeHub</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <h2>NoticeHub</h2>
+      <span class="badge">AIUB.</span>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <h2>Login</h2>
+          <p>Access your dashboard</p>
+
+          <form id="loginForm">
+            <label>Email</label>
+            <input id="email" type="email" required placeholder="Email"/>
+
+            <div style="height:10px"></div>
+
+            <label>Password</label>
+            <input id="password" type="password" required placeholder="******"/>
+
+            <div style="height:14px"></div>
+
+            <button type="submit">Login</button>
+            <div class="toast" id="toast">register new.</div>
+
+            <div class="hr"></div>
+            <small>New here? <a href="register.html">Create account</a></small>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    seedIfEmpty();
+
+    const u = getCurrentUser();
+    if(u) location.href = "dashboard.html";
+
+    document.getElementById("loginForm").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const res = loginUser({email, password});
+      setToast("toast", res.msg, res.ok ? "ok" : "bad");
+      if(res.ok) setTimeout(()=> location.href="dashboard.html", 500);
+    });
+  </script>
+</body>
+</html>
